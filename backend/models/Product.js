@@ -1,9 +1,8 @@
 const { Sequelize, DataTypes } = require("sequelize");
 const sequelize = require("../config/sequelize.db");
-// const sequelize = new Sequelize("postgres::memory");
 
-const User = sequelize.define(
-  "User",
+const Product = sequelize.define(
+  "Product",
   {
     id: {
       type: DataTypes.UUID,
@@ -11,15 +10,15 @@ const User = sequelize.define(
       primaryKey: true,
       allowNull: false,
     },
-    firstName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    lastName: {
+    description: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    email: {
+    stock: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
@@ -27,22 +26,17 @@ const User = sequelize.define(
         isEmail: true,
       },
     },
-    password: {
-      type: DataTypes.STRING,
+    price: {
+      type: DataTypes.DECIMAL,
       allowNull: false,
-    },
-    role: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: "user",
     },
   },
   {
-    tableName: "users",
+    tableName: "products",
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
   },
 );
 
-module.exports = User;
+module.exports = Product;
