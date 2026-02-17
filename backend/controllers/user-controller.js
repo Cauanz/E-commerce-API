@@ -33,7 +33,7 @@ const createUser = async (req, res) => {
     let token = jwt.sign({ id: newUser._id }, process.env.SECRET, {
       expiresIn: 86400, // expires in 24 hours
     });
-    // TODO - ESTÁ GERANDO UM ERRO DE ALGO ERRADO, REVISAR
+
     res.status(200).send({ newUser, token: token });
   } catch (error) {
     res
@@ -42,7 +42,23 @@ const createUser = async (req, res) => {
   }
 };
 
-// TODO - ADICIONAR OUTROS MODELOS
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = User.findOne({ where: { email: email } });
+
+    if (!user) {
+      res.status(409).send("User not found!");
+      return;
+    }
+
+    // TODO - TERMINAR ISSO, PEGAR TOKEN, DECODIFICAR, VALIDAR ETC...
+  } catch (error) {}
+};
+
+// const getUsers //! SOMENTE PARA DEBUG
+
 // TODO - ADICIONAR SISTEMA DE AUTENTICAÇÃO/AUTORIZAÇÃO AGORA?
 
 module.exports = createUser;
