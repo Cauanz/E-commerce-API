@@ -30,11 +30,7 @@ const createUser = async (req, res) => {
       password: passwordHash,
     });
 
-    let token = jwt.sign({ id: newUser._id }, process.env.SECRET, {
-      expiresIn: 86400, // expires in 24 hours
-    });
-
-    res.status(200).send({ newUser, token: token });
+    res.status(200).send({ newUser });
   } catch (error) {
     res
       .status(404)
@@ -42,23 +38,39 @@ const createUser = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
+const userLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = User.findOne({ where: { email: email } });
+    if (!email || !password) {
+      res.status(400).send("Email or password missing or invalid!");
+      return;
+    }
+
+    const user = await User.findOne({ where: { email: email } });
 
     if (!user) {
       res.status(409).send("User not found!");
       return;
     }
 
-    // TODO - TERMINAR ISSO, PEGAR TOKEN, DECODIFICAR, VALIDAR ETC...
-  } catch (error) {}
+    const checkPassword = bcrypt.compareSync(password, user.password);
+
+    if (checkPassword === false) {
+      res.status(401).send("The password is wrong!");
+      return;
+    }
+
+    let token = jwt.sign({ id: user._id }, process.env.SECRET, {
+      expiresIn: 86400, // expires in 24 hours
+    });
+
+    res.status(200).send({ token: token });
+  } catch (error) {
+    res.status(404).send(`Something went wrong trying to login: ${error}`);
+  }
 };
 
 // const getUsers //! SOMENTE PARA DEBUG
 
-// TODO - ADICIONAR SISTEMA DE AUTENTICAÇÃO/AUTORIZAÇÃO AGORA?
-
-module.exports = createUser;
+module.exports = { createUser, userLogin };
