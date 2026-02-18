@@ -1,0 +1,25 @@
+const jwt = require("jsonwebtoken");
+
+const validateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers["authorization"];
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+
+      jwt.verify(token, process.env.SECRET, (err, decoded) => {
+        if (err) res.status(401).send("Token expired!");
+        //* POR ENQUANTO A VERIFICAÇÃO É SÓ SE O TOKEN ESTÁ VALIDO (NÃO EXPIRADO POR DATA) MAS ADICIONAR VERIFICAÇÃO MELHOR
+      });
+
+      req.token = token;
+    } else {
+      req.token = null;
+    }
+    next();
+  } catch (error) {
+    res.status(401).send("Missing or invalid token");
+  }
+};
+
+module.exports = validateToken;

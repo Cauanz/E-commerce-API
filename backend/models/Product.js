@@ -19,12 +19,8 @@ const Product = sequelize.define(
       allowNull: false,
     },
     stock: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
     },
     price: {
       type: DataTypes.DECIMAL,
