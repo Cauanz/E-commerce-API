@@ -1,3 +1,4 @@
+const { where } = require("sequelize");
 const Product = require("../models/Product");
 
 const addProduct = async (req, res) => {
@@ -38,12 +39,74 @@ const addProduct = async (req, res) => {
       price: price,
     });
 
-    res.status(200).send("Product successfully created", newProduct);
+    res.status(204).send("Product successfully created", newProduct);
   } catch (error) {
-    res.status(404).send(`Something went wrong trying to login: ${error}`);
+    res
+      .status(500)
+      .send(`Something went wrong trying to add the product: ${error}`);
   }
 };
 
+const getProducts = async (req, res) => {
+  try {
+    const products = await Product.findAll();
+
+    if (!products) res.status(404).send("Products couldn't be recovered");
+
+    res.status(200).send(products);
+  } catch (error) {
+    res
+      .status(404)
+      .send(`Something went wrong trying to get the products: ${error}`);
+  }
+};
+
+const getProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+    const product = await Product.findOne({ where: { id: productId } });
+
+    if (!product) res.status(404).send("Product couldn't be recovered");
+
+    res.status(200).send(product);
+  } catch (error) {
+    res
+      .status(404)
+      .send(`Something went wrong trying to get the product: ${error}`);
+  }
+};
+
+const updateProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { name, description, stock, price } = req.body;
+
+    if (!name || !description || !stock || !price) {
+      res.status(400).send("No data has been passed to update");
+    }
+
+    if (!productId) {
+      res.status(400).send("Product id is missing or is invalid");
+    }
+
+    // TODO - TERMINAR ISSO
+    // const updatedProduct = await Product.update({name: name} { where: { id: productId } });
+  } catch (error) {
+    res
+      .status(500)
+      .send(`Something went wrong trying to update the product: ${error}`);
+  }
+};
+
+const increaseStock = async (req, res) => {};
+
+const decreaseStock = async (req, res) => {};
+
+const removeProduct = async (req, res) => {};
+
 module.exports = {
   addProduct,
+  getProducts,
+  getProduct,
 };
