@@ -2,6 +2,8 @@ const {
   addProduct,
   getProducts,
   getProduct,
+  updateProduct,
+  increaseStock,
 } = require("../controllers/product-controller");
 const { createUser, userLogin } = require("../controllers/user-controller");
 const validateToken = require("../middlewares/validateToken");
@@ -25,8 +27,8 @@ router.get("/products/:id", getProduct); // GET PRODUCT BY ID
 
 //ADMIN OPERATIONS
 router.post("/products/", validateToken, addProduct); // ADD PRODUCT
-// router.patch("/products/:id", updateProduct); // UPDATE PRODUCT(S)
-// router.post("/products/:id/increase-stock", validateToken, increaseStock); // INCREASE STOCK
+router.patch("/products/:id", updateProduct); // UPDATE PRODUCT(S)
+router.post("/products/:id/increase-stock", validateToken, increaseStock); // INCREASE STOCK
 // router.post("/products/:id/decrease-stock", validateToken, decreaseStock); // DECREASE STOCK
 // router.delete("/products/:id", removeProduct); // REMOVE PRODUCT
 

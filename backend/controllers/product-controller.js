@@ -83,15 +83,23 @@ const updateProduct = async (req, res) => {
     const { name, description, stock, price } = req.body;
 
     if (!name || !description || !stock || !price) {
-      res.status(400).send("No data has been passed to update");
+      res.status(400).send("A field is either missing or is invalid");
+      return;
     }
 
     if (!productId) {
       res.status(400).send("Product id is missing or is invalid");
+      return;
     }
 
-    // TODO - TERMINAR ISSO
-    // const updatedProduct = await Product.update({name: name} { where: { id: productId } });
+    const updatedProduct = await Product.update(
+      { name: name, description: description, stock: stock, price: price },
+      { where: { id: productId } },
+    );
+
+    // if (updatedProduct) console.log(updatedProduct);
+
+    res.status(204).send("Data updated successfully");
   } catch (error) {
     res
       .status(500)
@@ -99,8 +107,32 @@ const updateProduct = async (req, res) => {
   }
 };
 
-const increaseStock = async (req, res) => {};
+const increaseStock = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { quantity } = req.body;
 
+    if (!quantity) {
+      res.status(400).send("Quantity is missing");
+      return;
+    }
+
+    const updatedStock = await Product.increment("stock", {
+      by: quantity,
+      where: { id: productId },
+    });
+
+    res.status(204).send("The product stock has been incremented");
+  } catch (error) {
+    res
+      .status(500)
+      .send(
+        `Something went wrong trying to update the stock of the product: ${error}`,
+      );
+  }
+};
+
+// TODO - FAZER ESSE, É BASICAMENTE O MESMO DO OUTRO ACIMA MAS AO CONTRÁRIO
 const decreaseStock = async (req, res) => {};
 
 const removeProduct = async (req, res) => {};
@@ -109,4 +141,6 @@ module.exports = {
   addProduct,
   getProducts,
   getProduct,
+  updateProduct,
+  increaseStock,
 };
