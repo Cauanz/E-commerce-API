@@ -9,6 +9,7 @@ const validateToken = async (req, res, next) => {
 
       jwt.verify(token, process.env.SECRET, (err, decoded) => {
         if (err) res.status(401).send("Token expired!");
+        return;
         //* POR ENQUANTO A VERIFICAÇÃO É SÓ SE O TOKEN ESTÁ VALIDO (NÃO EXPIRADO POR DATA) MAS ADICIONAR VERIFICAÇÃO MELHOR
       });
 

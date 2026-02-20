@@ -1,4 +1,3 @@
-const { where } = require("sequelize");
 const Product = require("../models/Product");
 
 const addProduct = async (req, res) => {
@@ -6,23 +5,29 @@ const addProduct = async (req, res) => {
     const { name, description, stock, price } = req.body;
 
     if (name && description) {
-      if (typeof name !== "string" || typeof description !== "string")
+      if (typeof name !== "string" || typeof description !== "string") {
         res
           .status(400)
           .send(
             "Name or description using the wrong type, both must be strings",
           );
+        return;
+      }
     } else {
       res.status(400).send("Name or description missing.");
+      return;
     }
 
     if (stock && price) {
-      if (typeof stock !== "number" || typeof price !== "number")
+      if (typeof stock !== "number" || typeof price !== "number") {
         res
           .status(400)
           .send("Stock or price using the wrong type, both must be integers");
+        return;
+      }
     } else {
       res.status(400).send("Stock or price missing.");
+      return;
     }
 
     const product = await Product.findOne({ where: { name: name } });
@@ -67,7 +72,8 @@ const getProduct = async (req, res) => {
 
     const product = await Product.findOne({ where: { id: productId } });
 
-    if (!product) res.status(404).send("Product couldn't be recovered");
+    if (!product)
+      res.status(404).send("Product couldn't be recovered or doesn't exist");
 
     res.status(200).send(product);
   } catch (error) {
@@ -117,6 +123,11 @@ const increaseStock = async (req, res) => {
       return;
     }
 
+    if (!productId) {
+      res.status(400).send("Product ID is missing");
+      return;
+    }
+
     const updatedStock = await Product.increment("stock", {
       by: quantity,
       where: { id: productId },
@@ -132,10 +143,54 @@ const increaseStock = async (req, res) => {
   }
 };
 
-// TODO - FAZER ESSE, É BASICAMENTE O MESMO DO OUTRO ACIMA MAS AO CONTRÁRIO
-const decreaseStock = async (req, res) => {};
+const decreaseStock = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { quantity } = req.body;
 
-const removeProduct = async (req, res) => {};
+    if (!quantity) {
+      res.status(400).send("Quantity is missing");
+      return;
+    }
+
+    if (!productId) {
+      res.status(400).send("Product ID is missing");
+      return;
+    }
+
+    const updatedStock = await Product.decrement("stock", {
+      by: quantity,
+      where: { id: productId },
+    });
+
+    res.status(204).send("The product stock has been decremented");
+  } catch (error) {
+    res
+      .status(500)
+      .send(
+        `Something went wrong trying to update the stock of the product: ${error}`,
+      );
+  }
+};
+
+const removeProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+    if (!productId) {
+      res.status(400).send("Product ID is missing");
+      return;
+    }
+
+    const deleteProduct = await Product.destroy({ where: { id: productId } });
+
+    res.status(204).send("The product stock has been removed");
+  } catch (error) {
+    res
+      .status(500)
+      .send(`Something went wrong trying to delete the product: ${error}`);
+  }
+};
 
 module.exports = {
   addProduct,
@@ -143,4 +198,6 @@ module.exports = {
   getProduct,
   updateProduct,
   increaseStock,
+  decreaseStock,
+  removeProduct,
 };
