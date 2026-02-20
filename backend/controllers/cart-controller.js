@@ -1,4 +1,7 @@
 const jwt = require("jsonwebtoken");
+const Cart = require("../models/Cart");
+const CartItem = require("../models/CartItem");
+const Product = require("../models/Product");
 
 const addProductToCart = async (req, res) => {
   try {
@@ -22,9 +25,39 @@ const addProductToCart = async (req, res) => {
     const user = jwt.verify(JWTtoken, process.env.SECRET);
     const userId = user.id;
 
-    // TODO - PEGAMOS O ID DO USER, AGOR É ACHAR UM CART QUE CONTENHA ESSE ID E FAZER O RESTO DA OPERAÇÃO
+    const product = await Product.findOne({ where: { id: productId } });
 
-    res.status(204);
+    if (!product) {
+      res.status(400).send("Product couldn't be found");
+      return;
+    }
+
+    const userCart = await Cart.findOne({ where: { user_id: userId } });
+
+    if (!userCart) {
+      const newCart = await Cart.create({
+        user_id: userId,
+        status: "active",
+      });
+
+      const newProduct = await CartItem.create({
+        cart_id: newCart.id,
+        product_id: productId,
+        quantity: quantity,
+        original_price: product.price,
+      });
+    }
+
+    const newProduct = await CartItem.create({
+      cart_id: userCart.id,
+      product_id: productId,
+      quantity: quantity,
+      original_price: product.price,
+    });
+
+    // TODO - FUNCIONANDO MAS PRECISA REVISAR E VER O QUE FAZER DEPOIS (TALVEZ UMA ROTA QUE RECUPERE O CARRINHO, SE JÁ NÃO TEM UMA)
+
+    res.status(204).send("Product successfully added to the user's cart");
   } catch (error) {
     res
       .status(404)

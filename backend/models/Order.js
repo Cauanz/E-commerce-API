@@ -14,7 +14,7 @@ const Order = sequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: "User",
+        model: "users",
         key: "id",
       },
       onDelete: "CASCADE",
@@ -31,7 +31,7 @@ const Order = sequelize.define(
     },
   },
   {
-    tableName: "Orders",
+    tableName: "orders",
     createdAt: "created_at",
   },
 );

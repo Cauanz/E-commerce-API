@@ -14,7 +14,7 @@ const CartItem = sequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: "Cart",
+        model: "cart",
         key: "id",
       },
       onDelete: "CASCADE",
@@ -24,7 +24,7 @@ const CartItem = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: "Product",
+        model: "products",
         key: "id",
       },
       onDelete: "CASCADE",

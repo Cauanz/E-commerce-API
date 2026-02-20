@@ -14,7 +14,7 @@ const Payment = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: "Order",
+        model: "orders",
         key: "id",
       },
       onDelete: "CASCADE",
