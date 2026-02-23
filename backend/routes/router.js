@@ -5,6 +5,7 @@ const {
   updateProductOnCart,
   removeProductFromCart,
 } = require("../controllers/cart-controller");
+const { placeOrder } = require("../controllers/order-controller");
 const {
   addProduct,
   getProducts,
@@ -29,7 +30,7 @@ router.post("/user/login/", userLogin);
 router.post("/cart/items/", validateToken, addProductToCart); // ADD PRODUCT TO CART
 router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE ITEM ON CART
 router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
-// router.post("/orders/",); // PLACE ORDER
+router.post("/orders/", validateToken, placeOrder); // PLACE ORDER
 // router.post("/orders/:id/pay",); // FINISH ORDER
 
 //! DEBUG

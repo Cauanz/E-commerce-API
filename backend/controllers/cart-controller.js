@@ -37,7 +37,7 @@ const addProductToCart = async (req, res) => {
 
     const userCart = await Cart.findOne({ where: { user_id: userId } });
 
-    if (!userCart) {
+    if (!userCart || userCart.status !== 'active') {
       const newCart = await Cart.create({
         user_id: userId,
         status: "active",
@@ -139,7 +139,6 @@ const removeProductFromCart = async (req, res) => {
       return;
     }
 
-    //TODO - FUNCIONANDO, MAS COMO SEMPRE, MERECE DAR UMA CHECADA
     res.status(204).send("CartItem removed from cart successfully");
   } catch (error) {
     res
