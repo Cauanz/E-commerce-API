@@ -7,6 +7,13 @@ const validateToken = async (req, res, next) => {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
 
+      console.log(token);
+
+      if (!token) {
+        res.status(401).send("Missing or invalid token");
+        return;
+      }
+
       jwt.verify(token, process.env.SECRET, (err, decoded) => {
         if (err) res.status(401).send("Token expired!");
         return;

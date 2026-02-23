@@ -1,4 +1,10 @@
-const { addProductToCart } = require("../controllers/cart-controller");
+const {
+  addProductToCart,
+  getCarts,
+  getCartItems,
+  updateProductOnCart,
+  removeProductFromCart,
+} = require("../controllers/cart-controller");
 const {
   addProduct,
   getProducts,
@@ -13,16 +19,22 @@ const validateToken = require("../middlewares/validateToken");
 
 const router = require("express").Router();
 
+// TODO - POR ALGUM MOTIVO O TOKEN NÃO ESTÁ SENDO VALIDADO E AS ROTAS FUNCIONAM MESMO SEM TOKEN
+
 //USER OPERATIONS
 router.post("/user/register/", createUser);
 router.post("/user/login/", userLogin);
 
 // CART/ORDER OPERATIONS
 router.post("/cart/items/", validateToken, addProductToCart); // ADD PRODUCT TO CART
-// router.patch("/cart/items/:id",); // UPDATE ITEM ON CART
-// router.delete("/cart/items/:id",); //REMOVE ITEM FROM CART
+router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE ITEM ON CART
+router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
 // router.post("/orders/",); // PLACE ORDER
 // router.post("/orders/:id/pay",); // FINISH ORDER
+
+//! DEBUG
+router.get("/carts/", getCarts); // GET ALL CARTS
+router.get("/cart-items/", getCartItems); // GET ALL CART ITEMS
 
 //TODO - SE VOCE CONSEGUIR DEIXAR BUSCAR TODOS OS PRODUTOS E BUSCAR 1 PRODUTO POR ID EM UM ENDPOINT SÓ SERIA MELHOR
 router.get("/products/", getProducts); // GET PRODUCTS
