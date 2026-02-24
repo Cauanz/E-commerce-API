@@ -25,6 +25,7 @@ const router = require("express").Router();
 //USER OPERATIONS
 router.post("/user/register/", createUser);
 router.post("/user/login/", userLogin);
+// router.post("/user/logout/",); // LOGOUT ENDPOINT
 
 // CART/ORDER OPERATIONS
 router.post("/cart/items/", validateToken, addProductToCart); // ADD PRODUCT TO CART

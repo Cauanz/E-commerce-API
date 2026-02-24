@@ -54,6 +54,11 @@ const placeOrder = async (req, res) => {
       });
     });
 
+    // TODO - ADICIONAR OPÇÕES DE PROVEDORES NA REQUISIÇÃO?
+    const mercadoPagoOrder = "https://api.mercadopago.com/v1/orders";
+
+    // TODO - TERMINAR A REQUISIÇÃO PARA ORDER NO MERCADOPAGO
+
     //TODO - PRONTO, MAS ACHO QUE ESTA ERRADO OU FALTA COISAS, POR QUE AINDA NÃO FAZ SENTIDO
     res.status(204).send("Order placed successfully, waiting for payment...");
   } catch (error) {
