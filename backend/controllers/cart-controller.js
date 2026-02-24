@@ -3,6 +3,7 @@ const Cart = require("../models/Cart");
 const CartItem = require("../models/CartItem");
 const Product = require("../models/Product");
 
+// TODO - ELE ADICIONA DOIS ITENS IGUAIS, MAS NÃO DEVIA
 const addProductToCart = async (req, res) => {
   try {
     const { productId, quantity } = req.body;

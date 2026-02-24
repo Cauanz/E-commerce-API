@@ -26,7 +26,7 @@ const Order = sequelize.define(
       allowNull: false,
     },
     total_amount: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL,
       allowNull: false,
     },
   },

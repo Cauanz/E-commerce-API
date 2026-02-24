@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const Cart = require("../models/Cart");
 const CartItem = require("../models/CartItem");
 const Order = require("../models/Order");
+const OrderItem = require("../models/OrderItem");
 
 const placeOrder = async (req, res) => {
   try {
@@ -20,24 +21,41 @@ const placeOrder = async (req, res) => {
     });
 
     if (!userCart) {
-      res.status(404).send("Cart couldn't be found or don't exist");
+      res.status(404).send("Cart couldn't be found or doesn't exist");
+      return;
     }
 
     const cartItems = await CartItem.findAll({
       where: { cart_id: userCart.id },
     });
 
-    // TODO - TERMINAR ISSO AQUI
-    // TODO - CONVERTER CARTITEMS EM ORDERITEMS (QUE SÃO CONGELADOS E NÃO MUDAM)
-    //TODO - CRIAR O ORDER (TALVEZ TENHA QUE CRIAR ANTES? MAS COMO VAMOS ADICIONAR O TOTAL_AMOUNT? VAI TER QUE ATUALIZAR O ORDER QUE ACABAMOS DE CRIAR?)
+    if (!cartItems || cartItems.length === 0) {
+      res.status(404).send("Cart Items couldn't be found or don't exist");
+      return;
+    }
 
-    // console.log(cartItems);
+    const prices = cartItems.map((item) =>
+      Number.parseFloat(item.original_price),
+    );
+    const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
 
-    // const order = await Order.create({
-    //   user_id: userId,
-    //   status: "pending",
-    //   total_amount: something,
-    // });
+    const newOrder = await Order.create({
+      user_id: userId,
+      status: "pending",
+      total_amount: totalAmount,
+    });
+
+    const orderItems = cartItems.map(async (item) => {
+      await OrderItem.create({
+        order_id: newOrder.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price_at_purchase: item.original_price,
+      });
+    });
+
+    //TODO - PRONTO, MAS ACHO QUE ESTA ERRADO OU FALTA COISAS, POR QUE AINDA NÃO FAZ SENTIDO
+    res.status(204).send("Order placed successfully, waiting for payment...");
   } catch (error) {
     res
       .status(404)
