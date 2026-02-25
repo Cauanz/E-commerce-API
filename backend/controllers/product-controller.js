@@ -86,11 +86,10 @@ const getProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-    const keyValues = req.body;
+    const data = req.body;
+    const keys = Object.keys(data);
 
-    console.log(values);
-
-    if (!name || !description || !stock || !price) {
+    if (!data) {
       res.status(400).send("A field is either missing or is invalid");
       return;
     }
@@ -100,18 +99,15 @@ const updateProduct = async (req, res) => {
       return;
     }
 
-    for (const [key, value] of Object.entries(keyValues)) {
-      await Product.update({ key: value }, { where: { id: productId } });
+    for (const key of keys) {
+      await Product.update({ [key]: data[key] }, { where: { id: productId } });
     }
-    // TODO - TERMINAR ISSO PARA PODER PEGAR E ATUALIZAR O QUE VIER NO REQUEST, SEM PRECISAR PEGAR UM POR UM, E PODER ATUALIZAR SÓ O STOCK POR EXEMPLO, PARA O ORDER QUE RESERVA O STOCK QUANDO É CRIADO
 
     //* P.S. TALVEZ O ORDER NÃO FUNCIONE PORQUE A TABELA CRIADA NÃO INCLUI O NOVO CAMPO EXPIRES_AT
 
     // const updatedProduct = keyValues.map(async (key, value) => {
     //   await Product.update({ key: key }, { where: { id: productId } });
     // });
-
-    // if (updatedProduct) console.log(updatedProduct);
 
     res.status(204).send("Data updated successfully");
   } catch (error) {

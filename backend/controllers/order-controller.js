@@ -36,33 +36,44 @@ const placeOrder = async (req, res) => {
       return;
     }
 
-    const prices = cartItems.map((item) =>
-      Number.parseFloat(item.original_price) * item.quantity,
+    const prices = cartItems.map(
+      (item) => Number.parseFloat(item.original_price) * item.quantity,
     );
     const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
 
-    const newOrder = await Order.create({
-      user_id: userId,
-      status: "pending",
-      total_amount: totalAmount,
-    });
+    //! DEBUG
+    const pendingOrder = await Order.findOne({ where: { user_id: userId } });
+    if (pendingOrder) {
+      const dateNow = new Date(Date().now());
+      if (pendingOrder.expires_at < dateNow) {
+        pendingOrder.status = "cancelled";
+      }
+    }
+    //! DEBUG
 
-    const orderItems = cartItems.map(async (item) => {
-      await OrderItem.create({
-        order_id: newOrder.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price_at_purchase: item.original_price,
-      });
+    //TODO - TERMINAR ESSA FUNÇÃO ACIMA QUE POR ENQUANTO É PARA DEBUG MAS TEM QUE TECNICAMENTE EXISTIR QUE VERIFICA SE TEM ORDERS PENDENTES E CANCELA ELAS ANTES DE CRIAR OUTRA (POR QUE A REGRA É QUE SÓ PODE TER UMA ATIVA)
+    //TODO - E TERMINAR ABAIXO PARA CRIAR A NOVA ORDER E AINDA NÃO SEI COMO FUNCIONA O STRIPE
 
-      // await Product.update({stock: })
-    });
+    // const newOrder = await Order.create({
+    //   user_id: userId,
+    //   status: "pending",
+    //   total_amount: totalAmount,
+    // });
+
+    // const orderItems = cartItems.map(async (item) => {
+    //   await OrderItem.create({
+    //     order_id: newOrder.id,
+    //     product_id: item.product_id,
+    //     quantity: item.quantity,
+    //     price_at_purchase: item.original_price,
+    //   });
+
+    //   await Product.decrement("stock", { by: item.quantity });
+    // });
 
     // const stripePaymentIntent = await stripe.paymentIntents.create({
     //   amount: newOrder.total_amount
     // })
-
-    // TODO - TERMINAR A REQUISIÇÃO PARA ORDER NO MERCADOPAGO
 
     //TODO - PRONTO, MAS ACHO QUE ESTA ERRADO OU FALTA COISAS, POR QUE AINDA NÃO FAZ SENTIDO
     res.status(204).send("Order placed successfully, waiting for payment...");
