@@ -3,6 +3,8 @@ const Cart = require("../models/Cart");
 const CartItem = require("../models/CartItem");
 const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
+const stripe = require("../config/stripe_provider");
+const Product = require("../models/Product");
 
 const placeOrder = async (req, res) => {
   try {
@@ -35,7 +37,7 @@ const placeOrder = async (req, res) => {
     }
 
     const prices = cartItems.map((item) =>
-      Number.parseFloat(item.original_price),
+      Number.parseFloat(item.original_price) * item.quantity,
     );
     const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
 
@@ -52,10 +54,13 @@ const placeOrder = async (req, res) => {
         quantity: item.quantity,
         price_at_purchase: item.original_price,
       });
+
+      // await Product.update({stock: })
     });
 
-    // TODO - ADICIONAR OPÇÕES DE PROVEDORES NA REQUISIÇÃO?
-    const mercadoPagoOrder = "https://api.mercadopago.com/v1/orders";
+    // const stripePaymentIntent = await stripe.paymentIntents.create({
+    //   amount: newOrder.total_amount
+    // })
 
     // TODO - TERMINAR A REQUISIÇÃO PARA ORDER NO MERCADOPAGO
 
