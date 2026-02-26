@@ -97,11 +97,29 @@ const placeOrder = async (req, res) => {
 
 const payOrder = async (req, res) => {
   try {
-    //RECEBER FORMA DE PAGAMENTO, DADOS DA FORMA ESCOLHIDA + DO CLIENTE
+    //! NÃO RECEBA DADOS DO CLIENTE (PELO MENOS NÃO OS DO CARTÃO) ISSO É FEITO PELO STRIPE COM O ORDERID QUE O FRONT RECEBE E ENVIA NA REQUISIÇÃO PARA PAGAR O ORDER
+    const orderId = req.params.orderId;
+
+    const clientOrder = await Order.findOne({
+      where: {
+        id: orderId,
+        status: "pending",
+      },
+    });
+
+    const checkOrder = new Date() > clientOrder.expires_at;
+
+    if (!checkOrder) {
+      res.status(404).send("The order has expired");
+      return;
+    }
+
+    // TODO - TERMINAR DE CRIAR A SESSÃO DE CHECKOUT DO STRIPE E AS COISAS DE WEBHOOK, GATEWAY ETC...
+    // const checkoutSession =
+
     // const stripePaymentIntent = await stripe.paymentIntents.create({
     //   amount: newOrder.total_amount
     // })
-    //! NÃO RECEBA DADOS DO CLIENTE (PELO MENOS NÃO OS DO CARTÃO) ISSO É FEITO PELO STRIPE COM O ORDERID QUE O FRONT RECEBE E ENVIA NA REQUISIÇÃO PARA PAGAR O ORDER
     //TODO - AINDA NÃO SEI COMO O STRIPE FUNCIONA
     // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
     //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
@@ -114,4 +132,5 @@ const payOrder = async (req, res) => {
 
 module.exports = {
   placeOrder,
+  payOrder,
 };
