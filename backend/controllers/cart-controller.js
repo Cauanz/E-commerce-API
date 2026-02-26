@@ -38,7 +38,7 @@ const addProductToCart = async (req, res) => {
 
     const userCart = await Cart.findOne({ where: { user_id: userId } });
 
-    if (!userCart || userCart.status !== 'active') {
+    if (!userCart || userCart.status !== "active") {
       const newCart = await Cart.create({
         user_id: userId,
         status: "active",
@@ -50,6 +50,20 @@ const addProductToCart = async (req, res) => {
         quantity: quantity,
         original_price: product.price,
       });
+
+      res.status(204).send("Product successfully added to the user's cart");
+      return;
+    }
+
+    const productExists = await Cart.findOne({
+      where: { product_id: productId },
+    });
+
+    if (productExists) {
+      Cart.update({ quantity: quantity }, { where: { product_id: productId } });
+
+      res.status(204).send("Product quantity updated on the user's cart");
+      return;
     }
 
     const newProduct = await CartItem.create({
@@ -58,8 +72,6 @@ const addProductToCart = async (req, res) => {
       quantity: quantity,
       original_price: product.price,
     });
-
-    //TODO - ADICIONAR A FUNÇÃO QUE SE ENVIADO O MESMO PRODUTO COM QUANTIDADE DIFERENTE, VOCE SOMA
 
     res.status(204).send("Product successfully added to the user's cart");
   } catch (error) {

@@ -42,46 +42,73 @@ const placeOrder = async (req, res) => {
     const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
 
     //! DEBUG
-    const pendingOrder = await Order.findOne({ where: { user_id: userId } });
+    const pendingOrder = await Order.findOne({
+      where: { user_id: userId, status: "pending" },
+    });
     if (pendingOrder) {
-      const dateNow = new Date(Date().now());
-      if (pendingOrder.expires_at < dateNow) {
+      const dateNow = new Date();
+      if (dateNow > pendingOrder.expires_at) {
         pendingOrder.status = "cancelled";
       }
     }
     //! DEBUG
 
-    //TODO - TERMINAR ESSA FUNÇÃO ACIMA QUE POR ENQUANTO É PARA DEBUG MAS TEM QUE TECNICAMENTE EXISTIR QUE VERIFICA SE TEM ORDERS PENDENTES E CANCELA ELAS ANTES DE CRIAR OUTRA (POR QUE A REGRA É QUE SÓ PODE TER UMA ATIVA)
-    //TODO - E TERMINAR ABAIXO PARA CRIAR A NOVA ORDER E AINDA NÃO SEI COMO FUNCIONA O STRIPE
-    // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
+    //* - TERMINAR ESSA FUNÇÃO ACIMA QUE POR ENQUANTO É PARA DEBUG MAS TEM QUE TECNICAMENTE EXISTIR QUE VERIFICA SE TEM ORDERS PENDENTES E CANCELA ELAS ANTES DE CRIAR OUTRA (POR QUE A REGRA É QUE SÓ PODE TER UMA ATIVA)
 
-    // const newOrder = await Order.create({
-    //   user_id: userId,
-    //   status: "pending",
-    //   total_amount: totalAmount,
-    // });
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const newOrder = await Order.create({
+      user_id: userId,
+      status: "pending",
+      total_amount: totalAmount,
+      expires_at: expiresAt,
+    });
 
-    // const orderItems = cartItems.map(async (item) => {
-    //   await OrderItem.create({
-    //     order_id: newOrder.id,
-    //     product_id: item.product_id,
-    //     quantity: item.quantity,
-    //     price_at_purchase: item.original_price,
-    //   });
+    await Promise.all(
+      cartItems.map(async (item) => {
+        await OrderItem.create({
+          order_id: newOrder.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price_at_purchase: item.original_price,
+        });
 
-    //   await Product.decrement("stock", { by: item.quantity });
-    // });
+        await Product.decrement("stock", {
+          by: item.quantity,
+          where: { id: item.product_id },
+        });
+      }),
+    );
 
-    // const stripePaymentIntent = await stripe.paymentIntents.create({
-    //   amount: newOrder.total_amount
-    // })
+    const convertedCart = await Cart.update(
+      { status: "converted" },
+      { where: { user_id: userId } },
+    );
 
-    //TODO - PRONTO, MAS ACHO QUE ESTA ERRADO OU FALTA COISAS, POR QUE AINDA NÃO FAZ SENTIDO
-    res.status(204).send("Order placed successfully, waiting for payment...");
+    res.status(200).send({
+      message: "Order placed successfully, waiting for payment...",
+      orderId: newOrder.id,
+    });
   } catch (error) {
     res
       .status(404)
       .send(`Something went wrong trying to place the order: ${error}`);
+  }
+};
+
+const payOrder = async (req, res) => {
+  try {
+    //RECEBER FORMA DE PAGAMENTO, DADOS DA FORMA ESCOLHIDA + DO CLIENTE
+    // const stripePaymentIntent = await stripe.paymentIntents.create({
+    //   amount: newOrder.total_amount
+    // })
+    //! NÃO RECEBA DADOS DO CLIENTE (PELO MENOS NÃO OS DO CARTÃO) ISSO É FEITO PELO STRIPE COM O ORDERID QUE O FRONT RECEBE E ENVIA NA REQUISIÇÃO PARA PAGAR O ORDER
+    //TODO - AINDA NÃO SEI COMO O STRIPE FUNCIONA
+    // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
+    //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
+  } catch (error) {
+    res
+      .status(404)
+      .send(`Something went wrong trying to finish the order: ${error}`);
   }
 };
 

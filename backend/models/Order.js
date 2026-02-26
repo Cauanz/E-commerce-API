@@ -31,8 +31,7 @@ const Order = sequelize.define(
     },
     expires_at: {
       type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: () => new Date(Date.now() + 30 * 60 * 1000),
+      allowNull: false
     },
   },
   {
