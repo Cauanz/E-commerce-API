@@ -107,15 +107,53 @@ const payOrder = async (req, res) => {
       },
     });
 
-    const checkOrder = new Date() > clientOrder.expires_at;
+    // const checkOrder = new Date() > clientOrder.expires_at;
 
-    if (!checkOrder) {
-      res.status(404).send("The order has expired");
+    // if (!checkOrder) {
+    //   res.status(404).send("The order has expired");
+    //   return;
+    // }
+
+    const orderItems = await OrderItem.findAll({
+      where: { order_id: orderId },
+    });
+
+    console.log(orderItems);
+
+    if (!orderItems || orderItems.length === 0) {
+      res.status(404).send("Order Items couldn't be found or don't exist");
       return;
     }
 
-    // TODO - TERMINAR DE CRIAR A SESSÃO DE CHECKOUT DO STRIPE E AS COISAS DE WEBHOOK, GATEWAY ETC...
-    // const checkoutSession =
+    // const prices = orderItems.map(
+    //   (item) => Number.parseFloat(item.price_at_purchase) * item.quantity,
+    // );
+    // const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
+
+    const products = await Promise.all(
+      orderItems.map((item) => {
+        return Product.findOne({ where: { id: item.product_id } });
+      }),
+    );
+
+    // TODO - TERMINAR DE CRIAR ISSO E REVISAR SE ESTÁ CORRETO ANTES
+    // const checkoutSession = await stripe.checkout.sessions.create({
+    //   success_url: "", //! FALTA A URL, TALVEZ CRIAR OUTRO ENDPOINT PARA RETORNO
+    //   line_items: orderItems.map((item) => ({
+    //     price_data: {
+    //       currency: "brl",
+    //       product_data: {
+    //         id: item.product_id,
+    //       },
+    //       unit_amount: item.price_at_purchase * 100,
+    //     },
+    //     quantity: item.quantity,
+    //   })),
+    //   mode: "payment",
+    //   metadata: {
+    //     orderId: clientOrder.id,
+    //   },
+    // });
 
     // const stripePaymentIntent = await stripe.paymentIntents.create({
     //   amount: newOrder.total_amount
