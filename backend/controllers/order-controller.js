@@ -107,6 +107,7 @@ const payOrder = async (req, res) => {
       },
     });
 
+    // TODO - CONSERTAR VERIFICAÇÃO DE VALIDADE DE ORDER
     // const checkOrder = new Date() > clientOrder.expires_at;
 
     // if (!checkOrder) {
@@ -118,49 +119,61 @@ const payOrder = async (req, res) => {
       where: { order_id: orderId },
     });
 
-    console.log(orderItems);
-
     if (!orderItems || orderItems.length === 0) {
       res.status(404).send("Order Items couldn't be found or don't exist");
       return;
     }
 
-    // const prices = orderItems.map(
-    //   (item) => Number.parseFloat(item.price_at_purchase) * item.quantity,
-    // );
-    // const totalAmount = prices.reduce((acc, cur) => acc + cur, 0);
+    const productIds = [...new Set(orderItems.map((item) => item.product_id))];
+    const products = await Product.findAll({
+      where: { id: productIds },
+      attributes: ["id", "name"],
+    });
 
-    const products = await Promise.all(
-      orderItems.map((item) => {
-        return Product.findOne({ where: { id: item.product_id } });
-      }),
+    const productsById = new Map(
+      products.map((product) => [product.id, product]),
     );
 
-    // TODO - TERMINAR DE CRIAR ISSO E REVISAR SE ESTÁ CORRETO ANTES
-    // const checkoutSession = await stripe.checkout.sessions.create({
-    //   success_url: "", //! FALTA A URL, TALVEZ CRIAR OUTRO ENDPOINT PARA RETORNO
-    //   line_items: orderItems.map((item) => ({
-    //     price_data: {
-    //       currency: "brl",
-    //       product_data: {
-    //         id: item.product_id,
-    //       },
-    //       unit_amount: item.price_at_purchase * 100,
-    //     },
-    //     quantity: item.quantity,
-    //   })),
-    //   mode: "payment",
-    //   metadata: {
-    //     orderId: clientOrder.id,
-    //   },
-    // });
+    const lineItems = orderItems.map((item) => {
+      const product = productsById.get(item.product_id);
 
-    // const stripePaymentIntent = await stripe.paymentIntents.create({
-    //   amount: newOrder.total_amount
-    // })
-    //TODO - AINDA NÃO SEI COMO O STRIPE FUNCIONA
+      if (!product) {
+        throw new Error(`Product ${item.product_id} not found`);
+      }
+
+      return {
+        price_data: {
+          currency: "brl",
+          product_data: {
+            name: product.name,
+          },
+          unit_amount: item.price_at_purchase * 100,
+        },
+        quantity: item.quantity,
+      };
+    });
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      success_url: "http://localhost:3000/success",
+      line_items: lineItems,
+      mode: "payment",
+      metadata: {
+        orderId: clientOrder.id,
+      },
+    });
+
+    console.log(checkoutSession);
+
+
+    //* FUNCIONANDO MAS PRECISA CONSERTAR ROTA DE CALLBACK DEPOIS DE TRANSAÇÃO BEM SUCEDIDA OU NÃO (E ROTA LOCAL)
+
+
+
+
     // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
     //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
+
+    res.status(200).send(checkoutSession);
   } catch (error) {
     res
       .status(404)
@@ -168,7 +181,25 @@ const payOrder = async (req, res) => {
   }
 };
 
+const paymentSuccess = async (req, res) => {
+  try {
+    res.send(204).send("Order paid successfully");
+  } catch (error) {
+    res.status(404).send(`Something went wrong paying the order: ${error}`);
+  }
+};
+
+const paymentFailure = async (req, res) => {
+  try {
+    res.send(204).send("Order not paid");
+  } catch (error) {
+    res.status(404).send(`Something went wrong paying the order: ${error}`);
+  }
+};
+
 module.exports = {
   placeOrder,
   payOrder,
+  paymentSuccess,
+  paymentFailure,
 };
