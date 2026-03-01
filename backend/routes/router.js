@@ -38,8 +38,8 @@ router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE I
 router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
 router.post("/orders/", validateToken, placeOrder); // PLACE ORDER
 router.post("/orders/:orderId/pay", payOrder); // FINISH ORDER
-router.get("/success", paymentSuccess); // CALLBACK URL FOR SUCCESSFUL PAYMENT
-router.get("/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
+router.get("/orders/success", paymentSuccess); // CALLBACK URL FOR SUCCESSFUL PAYMENT
+router.get("/orders/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
 
 //! DEBUG
 router.get("/carts/", getCarts); // GET ALL CARTS
