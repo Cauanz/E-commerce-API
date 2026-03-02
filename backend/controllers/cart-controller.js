@@ -3,7 +3,6 @@ const Cart = require("../models/Cart");
 const CartItem = require("../models/CartItem");
 const Product = require("../models/Product");
 
-// TODO - ELE ADICIONA DOIS ITENS IGUAIS, MAS NÃO DEVIA
 const addProductToCart = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
@@ -57,17 +56,17 @@ const addProductToCart = async (req, res) => {
       return;
     }
 
-    // TODO - ALGO AINDA ESTÁ ERRADO ELE NÃO ESTÁ ADICIONANDO NEM ATUALIZANDO
     const userCartItems = await CartItem.findAll({
       where: { cart_id: userCart.id },
     });
 
-    const productExists = userCartItems.filter(
-      (cartItem) => cartItem.product_id === productId,
-    );
-    console.log(productExists);
+    const products = userCartItems.map((item) => {
+      return item.product_id;
+    });
 
-    if (productExists.length >= 0) {
+    const productExists = products.includes(productId);
+
+    if (productExists) {
       await CartItem.update(
         { quantity: quantity },
         { where: { cart_id: userCart.id, product_id: productId } },
@@ -84,7 +83,7 @@ const addProductToCart = async (req, res) => {
       original_price: product.price,
     });
 
-    res.status(204).send("Product successfully added to the user's cart");
+    res.status(200).send("Product successfully added to the user's cart");
   } catch (error) {
     res
       .status(404)

@@ -99,6 +99,15 @@ const payOrder = async (req, res) => {
   try {
     //! NÃO RECEBA DADOS DO CLIENTE (PELO MENOS NÃO OS DO CARTÃO) ISSO É FEITO PELO STRIPE COM O ORDERID QUE O FRONT RECEBE E ENVIA NA REQUISIÇÃO PARA PAGAR O ORDER
     const orderId = req.params.orderId;
+    const token = req.token;
+
+    if (!token || typeof token !== "string") {
+      res.status(400).send("User ID is missing or is invalid");
+      return;
+    }
+
+    const user = jwt.verify(token, process.env.SECRET);
+    const userId = user.id;
 
     const clientOrder = await Order.findOne({
       where: {
@@ -111,20 +120,34 @@ const payOrder = async (req, res) => {
       throw new Error("No order has been found");
     }
 
-    // TODO - CONSERTAR VERIFICAÇÃO DE VALIDADE DE ORDER
-    const checkOrder = new Date() > clientOrder.expires_at;
-
-    if (!checkOrder) {
-      res.status(404).send("The order has expired");
-      return;
-    }
-
     const orderItems = await OrderItem.findAll({
       where: { order_id: orderId },
     });
 
     if (!orderItems || orderItems.length === 0) {
       res.status(404).send("Order Items couldn't be found or don't exist");
+      return;
+    }
+
+    const checkOrder = new Date() > clientOrder.expires_at;
+    if (checkOrder) {
+      //!DEBUG/TEMP
+      await Promise.all(
+        orderItems.map(async (item) => {
+          await Product.increment("stock", {
+            by: item.quantity,
+            where: { id: item.product_id },
+          });
+        }),
+
+        await Order.update(
+          { status: "cancelled" },
+          { where: { user_id: userId, id: orderId } },
+        ),
+      );
+      //!DEBUG/TEMP
+
+      res.status(404).send("The order has expired");
       return;
     }
 
@@ -158,8 +181,7 @@ const payOrder = async (req, res) => {
     });
 
     const checkoutSession = await stripe.checkout.sessions.create({
-      success_url: "http://localhost:3000/v1/orders/success", //! ROTA PARA TESTE LOCAL (MUDE POSTERIORMENTE)
-      return_url: "http://localhost:3000/v1/orders/cancel",
+      success_url: `http://localhost:3000/v1/orders/${orderId}/success`, //! ROTA PARA TESTE LOCAL (MUDE POSTERIORMENTE)
       line_items: lineItems,
       mode: "payment",
       metadata: {
@@ -176,8 +198,6 @@ const payOrder = async (req, res) => {
     //* FUNCIONANDO MAS PRECISA CONSERTAR ROTA DE CALLBACK DEPOIS DE TRANSAÇÃO BEM SUCEDIDA OU NÃO (E ROTA LOCAL)
     //* PELO QUE ENTENDI, DEPOIS DO CHECKOUT BEM SUCEDIDO (QUE É VERIFICADO PELO STRIPE FORA DO NOSSO AMBIENTE) ELE REDIRECIONA AUTOMATICAMENTE PARA A ROTA DE SUCESSO (QUE NÃO É UMA PÁGINA NO NOSSO CASO, SÓ A CONFIRMAÇÃO 204) QUE É UM PROBLEMA MAS TALVEZ DE PARA MUDAR NO AMBIENTE DO MEDUSA
 
-    // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
-
     res.status(200).send(checkoutSession);
   } catch (error) {
     res
@@ -188,14 +208,30 @@ const payOrder = async (req, res) => {
 
 const paymentSuccess = async (req, res) => {
   try {
+    const orderId = req.params.orderId;
+
+    const order = await Order.findOne({
+      where: { id: orderId, status: "pending" },
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    await Order.update(
+      { status: "paid" },
+      { where: { id: orderId, status: "pending" } },
+    );
+
     //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
-    // TODO - E MUDA STATUS DO ORDER
+
     res.send(204).send("Order paid successfully");
   } catch (error) {
     res.status(404).send(`Something went wrong paying the order: ${error}`);
   }
 };
 
+// TODO - ATÉ A PARTE DE PAGAR O PEDIDO E MUDAR A ORDER PARA PAID TUDO INDO BEM, FALTA ISSO AQUI (NÃO SEI COMO FUNCIONA)
 const paymentFailure = async (req, res) => {
   try {
     //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
