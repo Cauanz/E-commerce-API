@@ -107,13 +107,17 @@ const payOrder = async (req, res) => {
       },
     });
 
-    // TODO - CONSERTAR VERIFICAÇÃO DE VALIDADE DE ORDER
-    // const checkOrder = new Date() > clientOrder.expires_at;
+    if (!clientOrder) {
+      throw new Error("No order has been found");
+    }
 
-    // if (!checkOrder) {
-    //   res.status(404).send("The order has expired");
-    //   return;
-    // }
+    // TODO - CONSERTAR VERIFICAÇÃO DE VALIDADE DE ORDER
+    const checkOrder = new Date() > clientOrder.expires_at;
+
+    if (!checkOrder) {
+      res.status(404).send("The order has expired");
+      return;
+    }
 
     const orderItems = await OrderItem.findAll({
       where: { order_id: orderId },
@@ -155,6 +159,7 @@ const payOrder = async (req, res) => {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       success_url: "http://localhost:3000/v1/orders/success", //! ROTA PARA TESTE LOCAL (MUDE POSTERIORMENTE)
+      return_url: "http://localhost:3000/v1/orders/cancel",
       line_items: lineItems,
       mode: "payment",
       metadata: {
@@ -162,13 +167,16 @@ const payOrder = async (req, res) => {
       },
     });
 
+    const checkoutUrl = checkoutSession.url;
+
+    if (!checkoutUrl) {
+      throw new Error("checkout URL not found");
+    }
 
     //* FUNCIONANDO MAS PRECISA CONSERTAR ROTA DE CALLBACK DEPOIS DE TRANSAÇÃO BEM SUCEDIDA OU NÃO (E ROTA LOCAL)
     //* PELO QUE ENTENDI, DEPOIS DO CHECKOUT BEM SUCEDIDO (QUE É VERIFICADO PELO STRIPE FORA DO NOSSO AMBIENTE) ELE REDIRECIONA AUTOMATICAMENTE PARA A ROTA DE SUCESSO (QUE NÃO É UMA PÁGINA NO NOSSO CASO, SÓ A CONFIRMAÇÃO 204) QUE É UM PROBLEMA MAS TALVEZ DE PARA MUDAR NO AMBIENTE DO MEDUSA
 
     // TODO - E A REGRA É QUE ELE REMOVA OS ITENS TEMPORARIAMENTE DO STOCK E SE CANCELADO ELE DEVOLVE, SE NÃO ELE MANTEM REMOVIDO (POR QUE O CLIENTE COMPROU COM SUCESSO)
-    //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
-    //! AINDA NÃO IMPLEMENTADO
 
     res.status(200).send(checkoutSession);
   } catch (error) {
@@ -180,6 +188,8 @@ const payOrder = async (req, res) => {
 
 const paymentSuccess = async (req, res) => {
   try {
+    //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
+    // TODO - E MUDA STATUS DO ORDER
     res.send(204).send("Order paid successfully");
   } catch (error) {
     res.status(404).send(`Something went wrong paying the order: ${error}`);
@@ -188,6 +198,9 @@ const paymentSuccess = async (req, res) => {
 
 const paymentFailure = async (req, res) => {
   try {
+    //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
+    // TODO - E MUDA STATUS DO ORDER
+
     res.send(204).send("Order not paid");
   } catch (error) {
     res.status(404).send(`Something went wrong paying the order: ${error}`);

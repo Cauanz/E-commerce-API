@@ -9,7 +9,7 @@ const addProductToCart = async (req, res) => {
     const { productId, quantity } = req.body;
     const JWTtoken = req.token;
 
-    if (!productId || typeof productId !== "string") {
+    if (!productId || typeof productId !== "number") {
       res.status(400).send("Product ID is missing or is invalid");
       return;
     }
@@ -36,7 +36,9 @@ const addProductToCart = async (req, res) => {
       return;
     }
 
-    const userCart = await Cart.findOne({ where: { user_id: userId } });
+    const userCart = await Cart.findOne({
+      where: { user_id: userId, status: "active" },
+    });
 
     if (!userCart || userCart.status !== "active") {
       const newCart = await Cart.create({
@@ -55,14 +57,23 @@ const addProductToCart = async (req, res) => {
       return;
     }
 
-    const productExists = await Cart.findOne({
-      where: { product_id: productId },
+    // TODO - ALGO AINDA ESTÁ ERRADO ELE NÃO ESTÁ ADICIONANDO NEM ATUALIZANDO
+    const userCartItems = await CartItem.findAll({
+      where: { cart_id: userCart.id },
     });
 
-    if (productExists) {
-      Cart.update({ quantity: quantity }, { where: { product_id: productId } });
+    const productExists = userCartItems.filter(
+      (cartItem) => cartItem.product_id === productId,
+    );
+    console.log(productExists);
 
-      res.status(204).send("Product quantity updated on the user's cart");
+    if (productExists.length >= 0) {
+      await CartItem.update(
+        { quantity: quantity },
+        { where: { cart_id: userCart.id, product_id: productId } },
+      );
+
+      res.status(200).send("Product quantity updated on the user's cart");
       return;
     }
 
