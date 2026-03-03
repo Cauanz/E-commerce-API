@@ -35,6 +35,8 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+tests/
+todo.md
 
 # Temporary files
 tmp/
@@ -44,3 +46,5 @@ temp/
 # Package lock files (optional)
 package-lock.json
 yarn.lock
+
+# Other
