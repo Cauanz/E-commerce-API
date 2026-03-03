@@ -234,8 +234,40 @@ const paymentSuccess = async (req, res) => {
 // TODO - ATÉ A PARTE DE PAGAR O PEDIDO E MUDAR A ORDER PARA PAID TUDO INDO BEM, FALTA ISSO AQUI (NÃO SEI COMO FUNCIONA)
 const paymentFailure = async (req, res) => {
   try {
-    //TODO - AQUI É ONDE ELE DECIDE DE MANTER OU DEVOLVE STOCK, DEPOIS DA API DO STRIPE DIZER SE O PAGAMENTO FOI BEM SUCEDIDO OU NÃO
-    // TODO - E MUDA STATUS DO ORDER
+    const orderId = req.params.orderId;
+
+    const order = await Order.findOne({
+      where: { id: orderId, status: "pending" },
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const orderItems = await OrderItem.findAll({
+      where: { order_id: orderId },
+    });
+
+    if (!orderItems || orderItems.length === 0) {
+      res.status(404).send("Order Items couldn't be found or don't exist");
+      return;
+    }
+
+    //! NÃO TESTADO
+    // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+    orderItems.map(async (item) => {
+      await Product.increment("stock", {
+        by: item.quantity,
+        where: { id: item.product_id },
+      });
+    });
+
+    await Order.update(
+      { status: "cancelled" },
+      { where: { user_id: userId, id: orderId } },
+    );
+
+    await Cart.update({ status: "active" }, { where: { user_id: userId } });
 
     res.send(204).send("Order not paid");
   } catch (error) {
