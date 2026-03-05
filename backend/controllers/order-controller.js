@@ -254,12 +254,13 @@ const paymentFailure = async (req, res) => {
       });
     });
 
-    await Order.update(
-      { status: "cancelled" },
-      { where: { user_id: userId, id: orderId } },
-    );
+    // TODO - ELE NÃO RECEBE USERID ENTÃO ISSO NÃO FUNCIONA
+    // await Order.update(
+    //   { status: "cancelled" },
+    //   { where: { user_id: userId, id: orderId } },
+    // );
 
-    await Cart.update({ status: "active" }, { where: { user_id: userId } });
+    // await Cart.update({ status: "active" }, { where: { user_id: userId } });
 
     res.send(204).send("Order not paid");
   } catch (error) {

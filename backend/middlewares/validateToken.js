@@ -4,7 +4,7 @@ const validateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
 
-    if (!authHeader && !uthHeader.startsWith("Bearer ")) {
+    if (!authHeader && !authHeader.startsWith("Bearer ")) {
       req.token = null;
       return;
     }
