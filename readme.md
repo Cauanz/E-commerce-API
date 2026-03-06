@@ -140,3 +140,4 @@ Base: `/v1`
 ## Observação
 
 Este documento foi feito para o backend. A pasta `frontend/` não foi considerada nesta documentação por ser apenas para fins de teste e demonstração, e não foi criado por mim.
+Project idea taken from https://roadmap.sh/projects/ecommerce-api
