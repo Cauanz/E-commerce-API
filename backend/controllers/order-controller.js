@@ -222,30 +222,62 @@ const payOrder = async (req, res) => {
 
 const paymentEvent = async (req, res) => {
   try {
-    // TODO - TERMINAR DE CONVERTER ESSA FUNÇÃO PARA A FUNÇÃO UNIVERSAL DE WEBHOOK, USANDO SWITCH...CASE PARA AS RESPOSTAS DA API ETC...
-    //TODO - UNIR O QUE SOBROU DA PAYMENTFAILURE PARA COMPLETAR O QUE PRECISA
-    const checkoutResult = req.body;
+    const orderId = req.params.orderId;
+    // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
+    const event = req.body;
 
     console.log(checkoutResult);
 
-    // const orderId = req.params.orderId;
+    const order = await Order.findOne({
+      where: { id: orderId, status: "pending" },
+    });
 
-    // const order = await Order.findOne({
-    //   where: { id: orderId, status: "pending" },
-    // });
+    if (!order) {
+      throw new Error("Order not found");
+    }
 
-    // if (!order) {
-    //   throw new Error("Order not found");
-    // }
+    switch (event) {
+      case "checkout.session.completed":
+        //TODO - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
+        // await Order.update(
+        //   { status: "paid" },
+        //   { where: { id: orderId, status: "pending" } },
+        // );
 
-    // await Order.update(
-    //   { status: "paid" },
-    //   { where: { id: orderId, status: "pending" } },
-    // );
+        // TODO - TERMINAR ISSO, AINDA NÃO SEI COMO RECUPERAR O TRANSACTION_ID PARA MUDAR ELE PARA PAGO
+        // await Payment.findOne({transaction_id: })
+        res.status(204).send("Order paid successfully");
+        break;
 
-    // await Payment.findOne({transaction_id: })
+      case "payment_intent.payment_failed":
+        const orderItems = await OrderItem.findAll({
+          where: { order_id: orderId },
+        });
 
-    res.send(204).send("Order paid successfully");
+        if (!orderItems || orderItems.length === 0) {
+          res.status(404).send("Order Items couldn't be found or don't exist");
+          return;
+        }
+
+        //! NÃO TESTADO
+        // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+        orderItems.map(async (item) => {
+          await Product.increment("stock", {
+            by: item.quantity,
+            where: { id: item.product_id },
+          });
+        });
+
+        //* USERID SERÁ USADO AQUI
+        await Order.update(
+          { status: "cancelled" },
+          { where: { user_id: userId, id: orderId } },
+        );
+
+        await Cart.update({ status: "active" }, { where: { user_id: userId } });
+
+        res.send(204).send("Order not paid");
+    }
   } catch (error) {
     res.status(404).send(`Something went wrong paying the order: ${error}`);
   }
