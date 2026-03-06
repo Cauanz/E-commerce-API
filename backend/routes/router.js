@@ -8,8 +8,7 @@ const {
 const {
   placeOrder,
   payOrder,
-  paymentSuccess,
-  paymentFailure,
+  paymentEvent,
 } = require("../controllers/order-controller");
 const {
   addProduct,
@@ -38,8 +37,8 @@ router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE I
 router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
 router.post("/orders/", validateToken, placeOrder); // PLACE ORDER
 router.post("/orders/:orderId/pay", validateToken, payOrder); // FINISH ORDER
-router.get("/orders/:orderId/success", paymentSuccess); // CALLBACK URL FOR SUCCESSFUL PAYMENT
-router.get("/orders/:orderId/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
+router.post("/webhooks/stripe", paymentEvent); // CALLBACK URL FOR SUCCESSFUL PAYMENT
+// router.get("/orders/:orderId/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
 
 //! DEBUG
 router.get("/carts/", getCarts); // GET ALL CARTS

@@ -5,6 +5,9 @@ const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
 const stripe = require("../config/stripe_provider");
 const Product = require("../models/Product");
+const Payment = require("../models/Payment");
+
+const providers = ["stripe"];
 
 const placeOrder = async (req, res) => {
   try {
@@ -100,6 +103,15 @@ const payOrder = async (req, res) => {
     //! NÃO RECEBA DADOS DO CLIENTE (PELO MENOS NÃO OS DO CARTÃO) ISSO É FEITO PELO STRIPE COM O ORDERID QUE O FRONT RECEBE E ENVIA NA REQUISIÇÃO PARA PAGAR O ORDER
     const orderId = req.params.orderId;
     const token = req.token;
+    const choosenProvider = req.body.provider;
+
+    if (typeof choosenProvider === "string") {
+      if (!providers.includes(choosenProvider.toLowerCase())) {
+        res.status(400).send("Provider doesn't exist"); //! IMPROVISADO
+      }
+    } else {
+      res.status(400).send("provider is wrong in type"); //! IMPROVISADO
+    }
 
     if (!token || typeof token !== "string") {
       res.status(400).send("User ID is missing or is invalid");
@@ -193,6 +205,13 @@ const payOrder = async (req, res) => {
       throw new Error("checkout URL not found");
     }
 
+    const newPayment = await Payment.create({
+      order_id: orderId,
+      status: "pending",
+      provider: choosenProvider,
+      transaction_id: checkoutSession.id,
+    });
+
     res.status(200).send(checkoutSession);
   } catch (error) {
     res
@@ -201,22 +220,30 @@ const payOrder = async (req, res) => {
   }
 };
 
-const paymentSuccess = async (req, res) => {
+const paymentEvent = async (req, res) => {
   try {
-    const orderId = req.params.orderId;
+    // TODO - TERMINAR DE CONVERTER ESSA FUNÇÃO PARA A FUNÇÃO UNIVERSAL DE WEBHOOK, USANDO SWITCH...CASE PARA AS RESPOSTAS DA API ETC...
+    //TODO - UNIR O QUE SOBROU DA PAYMENTFAILURE PARA COMPLETAR O QUE PRECISA
+    const checkoutResult = req.body;
 
-    const order = await Order.findOne({
-      where: { id: orderId, status: "pending" },
-    });
+    console.log(checkoutResult);
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+    // const orderId = req.params.orderId;
 
-    await Order.update(
-      { status: "paid" },
-      { where: { id: orderId, status: "pending" } },
-    );
+    // const order = await Order.findOne({
+    //   where: { id: orderId, status: "pending" },
+    // });
+
+    // if (!order) {
+    //   throw new Error("Order not found");
+    // }
+
+    // await Order.update(
+    //   { status: "paid" },
+    //   { where: { id: orderId, status: "pending" } },
+    // );
+
+    // await Payment.findOne({transaction_id: })
 
     res.send(204).send("Order paid successfully");
   } catch (error) {
@@ -271,6 +298,6 @@ const paymentFailure = async (req, res) => {
 module.exports = {
   placeOrder,
   payOrder,
-  paymentSuccess,
-  paymentFailure,
+  paymentEvent,
+  // paymentFailure,
 };
