@@ -222,110 +222,122 @@ const payOrder = async (req, res) => {
 
 const paymentEvent = async (req, res) => {
   try {
-    const orderId = req.params.orderId;
+    // const orderId = req.params.orderId;
     // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
     const event = req.body;
+    const eventObject = event?.metadata;
+    // TODO - AINDA NÃO CONSIGO FAZER O WEBHOOK LOCAL FUNCIONAR POR ALGUM MOTIVO
 
-    console.log(checkoutResult);
+    console.log(event);
+    console.log(eventObject);
 
-    const order = await Order.findOne({
-      where: { id: orderId, status: "pending" },
-    });
+    // const order = await Order.findOne({
+    //   where: { id: orderId, status: "pending" },
+    // });
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+    // if (!order) {
+    //   res.status(404).send("Order not found");
+    //   return;
+    // }
 
-    switch (event) {
-      case "checkout.session.completed":
-        //TODO - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
-        // await Order.update(
-        //   { status: "paid" },
-        //   { where: { id: orderId, status: "pending" } },
-        // );
+    // switch (event.type) {
+    //   case "checkout.session.completed":
+    //     console.log(event);
+    //     //TODO - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
+    //     // await Order.update(
+    //     //   { status: "paid" },
+    //     //   { where: { id: orderId, status: "pending" } },
+    //     // );
 
-        // TODO - TERMINAR ISSO, AINDA NÃO SEI COMO RECUPERAR O TRANSACTION_ID PARA MUDAR ELE PARA PAGO
-        // await Payment.findOne({transaction_id: })
-        res.status(204).send("Order paid successfully");
-        break;
+    //     // TODO - TERMINAR ISSO, AINDA NÃO SEI COMO RECUPERAR O TRANSACTION_ID PARA MUDAR ELE PARA PAGO
+    //     // await Payment.findOne({transaction_id: })
+    //     res.status(204).send("Order paid successfully");
+    //     break;
 
-      case "payment_intent.payment_failed":
-        const orderItems = await OrderItem.findAll({
-          where: { order_id: orderId },
-        });
+    //   case "payment_intent.payment_failed":
+    //     const orderItems = await OrderItem.findAll({
+    //       where: { order_id: orderId },
+    //     });
 
-        if (!orderItems || orderItems.length === 0) {
-          res.status(404).send("Order Items couldn't be found or don't exist");
-          return;
-        }
+    //     if (!orderItems || orderItems.length === 0) {
+    //       res.status(404).send("Order Items couldn't be found or don't exist");
+    //       return;
+    //     }
 
-        //! NÃO TESTADO
-        // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
-        orderItems.map(async (item) => {
-          await Product.increment("stock", {
-            by: item.quantity,
-            where: { id: item.product_id },
-          });
-        });
+    //     //! NÃO TESTADO
+    //     // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+    //     orderItems.map(async (item) => {
+    //       await Product.increment("stock", {
+    //         by: item.quantity,
+    //         where: { id: item.product_id },
+    //       });
+    //     });
 
-        //* USERID SERÁ USADO AQUI
-        await Order.update(
-          { status: "cancelled" },
-          { where: { user_id: userId, id: orderId } },
-        );
+    //     //* USERID SERÁ USADO AQUI
+    //     await Order.update(
+    //       { status: "cancelled" },
+    //       { where: { user_id: userId, id: orderId } },
+    //     );
 
-        await Cart.update({ status: "active" }, { where: { user_id: userId } });
+    //     await Cart.update(
+    //       { status: "active" },
+    //       { where: { user_id: order.user_id } },
+    //     );
 
-        res.send(204).send("Order not paid");
-    }
+    //     res.send(204).send("Order not paid");
+
+    //   default:
+    //     res.status(200).send("Event received");
+    //     break;
+    // }
   } catch (error) {
-    res.status(404).send(`Something went wrong paying the order: ${error}`);
+    res.status(500).send(`Something went wrong paying the order: ${error}`);
   }
 };
 
-const paymentFailure = async (req, res) => {
-  try {
-    const orderId = req.params.orderId;
+// const paymentFailure = async (req, res) => {
+//   try {
+//     const orderId = req.params.orderId;
 
-    const order = await Order.findOne({
-      where: { id: orderId, status: "pending" },
-    });
+//     const order = await Order.findOne({
+//       where: { id: orderId, status: "pending" },
+//     });
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+//     if (!order) {
+//       throw new Error("Order not found");
+//     }
 
-    const orderItems = await OrderItem.findAll({
-      where: { order_id: orderId },
-    });
+//     const orderItems = await OrderItem.findAll({
+//       where: { order_id: orderId },
+//     });
 
-    if (!orderItems || orderItems.length === 0) {
-      res.status(404).send("Order Items couldn't be found or don't exist");
-      return;
-    }
+//     if (!orderItems || orderItems.length === 0) {
+//       res.status(404).send("Order Items couldn't be found or don't exist");
+//       return;
+//     }
 
-    //! NÃO TESTADO
-    // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
-    orderItems.map(async (item) => {
-      await Product.increment("stock", {
-        by: item.quantity,
-        where: { id: item.product_id },
-      });
-    });
+//     //! NÃO TESTADO
+//     // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+//     orderItems.map(async (item) => {
+//       await Product.increment("stock", {
+//         by: item.quantity,
+//         where: { id: item.product_id },
+//       });
+//     });
 
-    // TODO - ELE NÃO RECEBE USERID ENTÃO ISSO NÃO FUNCIONA
-    // await Order.update(
-    //   { status: "cancelled" },
-    //   { where: { user_id: userId, id: orderId } },
-    // );
+//     // TODO - ELE NÃO RECEBE USERID ENTÃO ISSO NÃO FUNCIONA
+//     // await Order.update(
+//     //   { status: "cancelled" },
+//     //   { where: { user_id: userId, id: orderId } },
+//     // );
 
-    // await Cart.update({ status: "active" }, { where: { user_id: userId } });
+//     // await Cart.update({ status: "active" }, { where: { user_id: userId } });
 
-    res.send(204).send("Order not paid");
-  } catch (error) {
-    res.status(404).send(`Something went wrong paying the order: ${error}`);
-  }
-};
+//     res.send(204).send("Order not paid");
+//   } catch (error) {
+//     res.status(404).send(`Something went wrong paying the order: ${error}`);
+//   }
+// };
 
 module.exports = {
   placeOrder,

@@ -36,8 +36,8 @@ router.post("/cart/items/", validateToken, addProductToCart); // ADD PRODUCT TO 
 router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE ITEM ON CART
 router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
 router.post("/orders/", validateToken, placeOrder); // PLACE ORDER
-router.post("/orders/:orderId/pay", validateToken, payOrder); // FINISH ORDER
-router.post("/webhooks/stripe", paymentEvent); // CALLBACK URL FOR SUCCESSFUL PAYMENT
+router.post("/orders/:orderId/pay/", validateToken, payOrder); // FINISH ORDER
+router.post("/webhooks/stripe/", paymentEvent); // CALLBACK URL FOR PAYMENTS
 // router.get("/orders/:orderId/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
 
 //! DEBUG
