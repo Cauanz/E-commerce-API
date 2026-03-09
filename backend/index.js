@@ -21,30 +21,34 @@ app.post(
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
-      const webhookTestSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      let event;
-      if (webhookTestSecret) {
-        const signature = req.headers["stripe-signature"];
-        try {
-          event = stripe.webhooks.constructEvent(
-            req.body,
-            signature,
-            webhookTestSecret,
-          );
-        } catch (err) {
-          console.log(`⚠️ Webhook signature verification failed.`, err.message);
-          res.sendStatus(400);
-          return;
-        }
-      }
+      //! DESATIVADO POR MOTIVOS DE DEBUG
+      // const webhookTestSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      // let event;
+      // if (webhookTestSecret) {
+      //   const signature = req.headers["stripe-signature"];
+      //   try {
+      //     event = stripe.webhooks.constructEvent(
+      //       req.body,
+      //       signature,
+      //       webhookTestSecret,
+      //     );
+      //   } catch (err) {
+      //     console.log(`⚠️ Webhook signature verification failed.`, err.message);
+      //     res.sendStatus(400);
+      //     return;
+      //   }
+      // }
+      //! DESATIVADO POR MOTIVOS DE DEBUG
+
+      // TODO - TESTANDO POR ROTA "MOCKADA" NO INSOMNIA, MAS NÃO ESTÁ FUNCIONANDO (TALVEZ PEDIR PARA IA CRIAR O OBJETO E COLOCAR OS DADOS DO CHECKOUT CRIADO)
 
       // const orderId = req.params.orderId;
       // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
-      // const event = req.body;
+      const event = req.body;
 
       const eventObject = event?.data.object;
       const metadata = eventObject.metadata;
-      // console.log(event);
+      console.log(event);
 
       // console.log(eventObject);
       console.log(metadata);
