@@ -191,11 +191,12 @@ const payOrder = async (req, res) => {
     });
 
     const checkoutSession = await stripe.checkout.sessions.create({
-      success_url: `http://localhost:3000/v1/orders/${orderId}/success`, //! ROTA PARA TESTE LOCAL (MUDE POSTERIORMENTE)
+      success_url: `http://localhost:3000/webhooks/${choosenProvider}/`, //! ROTA PARA TESTE LOCAL (MUDE POSTERIORMENTE)
       line_items: lineItems,
       mode: "payment",
       metadata: {
         orderId: clientOrder.id,
+        userId: userId,
       },
     });
 
@@ -220,80 +221,99 @@ const payOrder = async (req, res) => {
   }
 };
 
-const paymentEvent = async (req, res) => {
-  try {
-    // const orderId = req.params.orderId;
-    // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
-    const event = req.body;
-    const eventObject = event?.metadata;
-    // TODO - AINDA NÃO CONSIGO FAZER O WEBHOOK LOCAL FUNCIONAR POR ALGUM MOTIVO
+// const paymentEvent = async (req, res) => {
+//   try {
+//     const webhookTestSecret = process.env.STRIPE_WEBHOOK_SECRET;
+//     let event;
+//     if (webhookTestSecret) {
+//       const signature = req.headers["stripe-signature"];
+//       try {
+//         event = stripe.webhooks.constructEvent(
+//           req.body,
+//           signature,
+//           webhookTestSecret,
+//         );
+//       } catch (err) {
+//         console.log(`⚠️ Webhook signature verification failed.`, err.message);
+//         res.sendStatus(400);
+//         return;
+//       }
+//     }
 
-    console.log(event);
-    console.log(eventObject);
+//     // const orderId = req.params.orderId;
+//     // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
+//     // const event = req.body;
+//     const eventObject = event?.metadata;
+//     // TODO - AINDA NÃO CONSIGO FAZER O WEBHOOK LOCAL FUNCIONAR POR ALGUM MOTIVO
 
-    // const order = await Order.findOne({
-    //   where: { id: orderId, status: "pending" },
-    // });
+//     console.log(event);
+//     console.log(eventObject);
 
-    // if (!order) {
-    //   res.status(404).send("Order not found");
-    //   return;
-    // }
+//     // const order = await Order.findOne({
+//     //   where: { id: orderId, status: "pending" },
+//     // });
 
-    // switch (event.type) {
-    //   case "checkout.session.completed":
-    //     console.log(event);
-    //     //TODO - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
-    //     // await Order.update(
-    //     //   { status: "paid" },
-    //     //   { where: { id: orderId, status: "pending" } },
-    //     // );
+//     // if (!order) {
+//     //   res.status(404).send("Order not found");
+//     //   return;
+//     // }
 
-    //     // TODO - TERMINAR ISSO, AINDA NÃO SEI COMO RECUPERAR O TRANSACTION_ID PARA MUDAR ELE PARA PAGO
-    //     // await Payment.findOne({transaction_id: })
-    //     res.status(204).send("Order paid successfully");
-    //     break;
+//     // switch (event.type) {
+//     //   case "checkout.session.completed":
+//     //     console.log(event);
+//     //     //TODO - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
+//     //     // await Order.update(
+//     //     //   { status: "paid" },
+//     //     //   { where: { id: orderId, status: "pending" } },
+//     //     // );
 
-    //   case "payment_intent.payment_failed":
-    //     const orderItems = await OrderItem.findAll({
-    //       where: { order_id: orderId },
-    //     });
+//     //     // TODO - TERMINAR ISSO, AINDA NÃO SEI COMO RECUPERAR O TRANSACTION_ID PARA MUDAR ELE PARA PAGO
+//     //     // await Payment.findOne({transaction_id: })
+//     //     res.status(204).send("Order paid successfully");
+//     //     break;
 
-    //     if (!orderItems || orderItems.length === 0) {
-    //       res.status(404).send("Order Items couldn't be found or don't exist");
-    //       return;
-    //     }
+//     //   case "payment_intent.payment_failed":
+//     //     const orderItems = await OrderItem.findAll({
+//     //       where: { order_id: orderId },
+//     //     });
 
-    //     //! NÃO TESTADO
-    //     // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
-    //     orderItems.map(async (item) => {
-    //       await Product.increment("stock", {
-    //         by: item.quantity,
-    //         where: { id: item.product_id },
-    //       });
-    //     });
+//     //     if (!orderItems || orderItems.length === 0) {
+//     //       res.status(404).send("Order Items couldn't be found or don't exist");
+//     //       return;
+//     //     }
 
-    //     //* USERID SERÁ USADO AQUI
-    //     await Order.update(
-    //       { status: "cancelled" },
-    //       { where: { user_id: userId, id: orderId } },
-    //     );
+//     //     //! NÃO TESTADO
+//     //     // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+//     //     orderItems.map(async (item) => {
+//     //       await Product.increment("stock", {
+//     //         by: item.quantity,
+//     //         where: { id: item.product_id },
+//     //       });
+//     //     });
 
-    //     await Cart.update(
-    //       { status: "active" },
-    //       { where: { user_id: order.user_id } },
-    //     );
+//     //     //* USERID SERÁ USADO AQUI
+//     //     await Order.update(
+//     //       { status: "cancelled" },
+//     //       { where: { user_id: userId, id: orderId } },
+//     //     );
 
-    //     res.send(204).send("Order not paid");
+//     //     await Cart.update(
+//     //       { status: "active" },
+//     //       { where: { user_id: order.user_id } },
+//     //     );
 
-    //   default:
-    //     res.status(200).send("Event received");
-    //     break;
-    // }
-  } catch (error) {
-    res.status(500).send(`Something went wrong paying the order: ${error}`);
-  }
-};
+//     //     res.send(204).send("Order not paid");
+
+//     //   default:
+//     //     res.status(200).send("Event received");
+//     //     break;
+//     // }
+
+//     res.status(200).send("Event received");
+//   } catch (error) {
+//     res.status(500).send(`Something went wrong paying the order: ${error}`);
+//   }
+// };
 
 // const paymentFailure = async (req, res) => {
 //   try {
@@ -342,6 +362,6 @@ const paymentEvent = async (req, res) => {
 module.exports = {
   placeOrder,
   payOrder,
-  paymentEvent,
+  // paymentEvent,
   // paymentFailure,
 };

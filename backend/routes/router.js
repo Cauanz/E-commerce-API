@@ -24,8 +24,6 @@ const validateToken = require("../middlewares/validateToken");
 
 const router = require("express").Router();
 
-// TODO - POR ALGUM MOTIVO O TOKEN NÃO ESTÁ SENDO VALIDADO E AS ROTAS FUNCIONAM MESMO SEM TOKEN
-
 //USER OPERATIONS
 router.post("/user/register/", createUser);
 router.post("/user/login/", userLogin);
@@ -37,7 +35,7 @@ router.patch("/cart/items/:id", validateToken, updateProductOnCart); // UPDATE I
 router.delete("/cart/items/:id", validateToken, removeProductFromCart); //REMOVE ITEM FROM CART
 router.post("/orders/", validateToken, placeOrder); // PLACE ORDER
 router.post("/orders/:orderId/pay/", validateToken, payOrder); // FINISH ORDER
-router.post("/webhooks/stripe/", paymentEvent); // CALLBACK URL FOR PAYMENTS
+// router.post("/webhooks/stripe/", paymentEvent); // CALLBACK URL FOR PAYMENTS
 // router.get("/orders/:orderId/cancel", paymentFailure); // CALLBACK URL FOR FAILED PAYMENT
 
 //! DEBUG
