@@ -52,6 +52,7 @@ const placeOrder = async (req, res) => {
       const dateNow = new Date();
       if (dateNow > pendingOrder.expires_at) {
         pendingOrder.status = "cancelled";
+        //TODO - ACHO QUE ISSO NÃO FUNCIONA E ACHO QUE A REGRA DE NEGÓCIOS ESTÁ ERRADA
       }
     }
     //! DEBUG

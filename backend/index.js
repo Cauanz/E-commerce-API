@@ -21,51 +21,41 @@ app.post(
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
-      //! DESATIVADO POR MOTIVOS DE DEBUG
-      // const webhookTestSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      // let event;
-      // if (webhookTestSecret) {
-      //   const signature = req.headers["stripe-signature"];
-      //   try {
-      //     event = stripe.webhooks.constructEvent(
-      //       req.body,
-      //       signature,
-      //       webhookTestSecret,
-      //     );
-      //   } catch (err) {
-      //     console.log(`⚠️ Webhook signature verification failed.`, err.message);
-      //     res.sendStatus(400);
-      //     return;
-      //   }
-      // }
-      //! DESATIVADO POR MOTIVOS DE DEBUG
+      const webhookTestSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      let event;
+      if (webhookTestSecret) {
+        const signature = req.headers["stripe-signature"];
+        try {
+          event = stripe.webhooks.constructEvent(
+            req.body,
+            signature,
+            webhookTestSecret,
+          );
+        } catch (err) {
+          console.log(`⚠️ Webhook signature verification failed.`, err.message);
+          res.sendStatus(400);
+          return;
+        }
+      }
 
-      // TODO - TESTANDO POR ROTA "MOCKADA" NO INSOMNIA, MAS NÃO ESTÁ FUNCIONANDO (TALVEZ PEDIR PARA IA CRIAR O OBJETO E COLOCAR OS DADOS DO CHECKOUT CRIADO)
+      // const event = JSON.parse(req.body.toString()); //! USADO PARA DEBUG
 
-      // const orderId = req.params.orderId;
-      // const userId = req.body //TODO - AINDA NÃO TESTADO, MAS A IDEIA É RECEBER PELO METADATA PARA MUDAR O ORDER
-      const event = req.body;
-
-      const eventObject = event?.data.object;
+      const eventObject = event?.data?.object;
       const metadata = eventObject.metadata;
-      console.log(event);
-
-      // console.log(eventObject);
-      console.log(metadata);
 
       const order = await Order.findOne({
         where: { id: metadata.orderId, status: "pending" },
       });
 
       if (!order) {
-        res.status(404).send("Order not found");
+        res.status(404).send("Order not found or already paid");
         return;
       }
 
       switch (event.type) {
         case "checkout.session.completed":
-          console.log(event);
-          //* - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
+          //* - PRECISAMOS DO USER_ID PORQUE OS ORDERS TEM ID DO TIPO INTEIRO, OU SEJA POUCO NÚMERO, VAI TER VÁRIOS IGUAIS
+
           await Order.update(
             { status: "paid" },
             {
@@ -77,15 +67,20 @@ app.post(
             },
           );
 
-          // TODO - TERMINAR ESSA PARTE E A PARTE A BAIXO, E DESCOBRIR COMO CHAMAR O WEBHOOK DEPOIS DO PAGAMENTO, POR QUE NÃO É A ROTA NO CHECKOUT
           await Payment.update(
             { status: "approved" },
-            { where: { order_id: metadata.orderId } },
+            {
+              where: {
+                order_id: metadata.orderId,
+                transaction_id: eventObject.id,
+              },
+            },
           );
           res.status(204).send("Order paid successfully");
           break;
-
         case "payment_intent.payment_failed":
+          //* - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
+
           const orderItems = await OrderItem.findAll({
             where: { order_id: metadata.orderId },
           });
@@ -97,34 +92,39 @@ app.post(
             return;
           }
 
-        //     //! NÃO TESTADO
-        //     // TODO - BASICAMENTE FAZ UM ROLLBACK SE NÃO DER CERTO O PEDIDO (É OBRIGATÓRIO ABRIR UM NOVO PEDIDO, MAS PODE REUTILIZAR O MESMO CARRINHO)
-        //     orderItems.map(async (item) => {
-        //       await Product.increment("stock", {
-        //         by: item.quantity,
-        //         where: { id: item.product_id },
-        //       });
-        //     });
+          orderItems.map(async (item) => {
+            await Product.increment("stock", {
+              by: item.quantity,
+              where: { id: item.product_id },
+            });
+          });
 
-        //     //* USERID SERÁ USADO AQUI
-        //     await Order.update(
-        //       { status: "cancelled" },
-        //       { where: { user_id: userId, id: orderId } },
-        //     );
+          await Order.update(
+            { status: "cancelled" },
+            { where: { user_id: metadata.userId, id: metadata.orderId } },
+          );
 
-        //     await Cart.update(
-        //       { status: "active" },
-        //       { where: { user_id: order.user_id } },
-        //     );
+          await Payment.update(
+            { status: "failed" },
+            {
+              where: {
+                order_id: metadata.orderId,
+                transaction_id: eventObject.id,
+              },
+            },
+          );
 
-        //     res.send(204).send("Order not paid");
+          // await Cart.update(
+          //   { status: "active" },
+          //   { where: { user_id: order.user_id } },
+          // );
 
+          res.send(200).send("Order not paid");
+          break;
         default:
           res.status(200).send("Event received");
           break;
       }
-
-      res.status(200).send("Event received");
     } catch (error) {
       res.status(500).send(`Something went wrong paying the order: ${error}`);
     }
